@@ -21,7 +21,7 @@
 #include "adc.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "usart.h"
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc;
@@ -41,7 +41,7 @@ void MX_ADC_Init(void)
   hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc.Init.LowPowerAutoWait = DISABLE;
   hadc.Init.LowPowerAutoPowerOff = DISABLE;
-  hadc.Init.ContinuousConvMode = DISABLE;
+  hadc.Init.ContinuousConvMode = ENABLE;
   hadc.Init.DiscontinuousConvMode = DISABLE;
   hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -55,7 +55,7 @@ void MX_ADC_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -141,6 +141,99 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 
 /* USER CODE BEGIN 1 */
 
+#define ADC_VREF            3.3f
+#define ADC_V_PER_COUNT     ADC_VREF/4095.0f
+#define MCP9700_T_COEFF     100.0f      /*From MCP9700 Spec*/
+#define MCP9700_OFFSET      0.5f    /*500mV offset*/
+
+#define RESISTOR_DIV        13
+#define VOLT_PER_COUNT      (ADC_VREF*RESISTOR_DIV/4095.0f)
+
+void ADC_read(adc_t adc_index) {
+	uint32_t tmp;
+	uint8_t temp;
+	uint8_t volt;
+	static uint8_t previous_value[4] = {0};
+
+	switch (adc_index) {
+	case TEMP_TAS :
+	    hadc.Instance->CHSELR = 1<<ADC_CHANNEL_0;
+		break;
+	case TEMP_BRIDGE :
+        hadc.Instance->CHSELR = 1<<ADC_CHANNEL_1;
+		break;
+	case PVDD :
+	    hadc.Instance->CHSELR = 1<<ADC_CHANNEL_2;
+		break;
+	case VAMP :
+	    hadc.Instance->CHSELR = 1<<ADC_CHANNEL_3;
+		break;
+	default :
+		break;
+	}
+
+	if (HAL_ADC_Start(&hadc) != HAL_OK)
+	{
+		Error_Handler();
+	}
+  	if (HAL_ADC_PollForConversion(&hadc, 100) != HAL_OK)
+  	{
+  		Error_Handler();
+  	}
+
+  	tmp = HAL_ADC_GetValue(&hadc);
+
+
+	if (HAL_ADC_Stop(&hadc) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+    switch (adc_index) {
+    case TEMP_TAS :
+        temp = (uint8_t)((((float)(tmp) * ADC_V_PER_COUNT) - MCP9700_OFFSET) * MCP9700_T_COEFF + 0.5);
+        if (temp > (previous_value[TEMP_TAS] + 2) || temp < (previous_value[TEMP_TAS] - 2)) {
+            if (temp > 80)
+            {
+                color_console(RED_CONSOLE);
+                console_printf("WARNING ");
+                color_console(INIT_COLOR_CONSOLE);
+            }
+            console_printf("Temp TAS %d*C\r\n", temp);
+            previous_value[TEMP_TAS] = temp;
+        }
+        break;
+    case TEMP_BRIDGE :
+        temp = (uint8_t)((((float)(tmp) * ADC_V_PER_COUNT) - MCP9700_OFFSET) * MCP9700_T_COEFF + 0.5);
+        if (temp > (previous_value[TEMP_BRIDGE] + 2) || temp < (previous_value[TEMP_BRIDGE] - 2)) {
+            if (temp > 80)
+            {
+                color_console(RED_CONSOLE);
+                console_printf("WARNING ");
+                color_console(INIT_COLOR_CONSOLE);
+            }
+            console_printf("Temp Bridge %d*C\r\n", temp);
+            previous_value[TEMP_BRIDGE] = temp;
+        }
+        break;
+    case PVDD :
+        volt = (uint8_t)((float)(tmp) * VOLT_PER_COUNT + 0.5);
+        if (previous_value[PVDD] != volt) {
+            console_printf("PVDD %dV\r\n", (uint16_t)volt);
+            previous_value[PVDD] = volt;
+        }
+        break;
+    case VAMP :
+        volt = (uint8_t)((float)(tmp) * VOLT_PER_COUNT + 0.5);
+        if (previous_value[VAMP] != volt) {
+            console_printf("VAMP %dV\r\n", (uint16_t)volt);
+            previous_value[VAMP] = volt;
+        }
+        break;
+    default :
+        break;
+    }
+}
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

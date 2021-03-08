@@ -21,6 +21,7 @@
 #include "main.h"
 #include "adc.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -91,8 +92,17 @@ int main(void)
   MX_ADC_Init();
   MX_SPI1_Init();
   MX_USART1_UART_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   console_printf("Hello Axign ! \r\n");
+  HAL_Delay(100);
+  //enable TAS5342
+  HAL_GPIO_WritePin(TAS5342_RST_AB_GPIO_Port, TAS5342_RST_AB_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(TAS5342_RST_CD_GPIO_Port, TAS5342_RST_CD_Pin, GPIO_PIN_SET);
+
+  //enable Bridge
+  HAL_GPIO_WritePin(EN_BRIDGE_GPIO_Port, EN_BRIDGE_Pin, GPIO_PIN_SET);
+  TIM6_IRQ_start();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,6 +173,9 @@ void SystemClock_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
+	color_console(RED_CONSOLE);
+	console_printf("ERROR HANDLER\r\n");
+	color_console(INIT_COLOR_CONSOLE);
   /* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */

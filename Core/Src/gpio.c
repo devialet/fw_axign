@@ -62,7 +62,7 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pins : PCPin PCPin */
   GPIO_InitStruct.Pin = TAS5342_OTW_Pin|TAS5342_SD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */

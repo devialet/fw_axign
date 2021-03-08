@@ -104,6 +104,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   }
 }
 
+/* USER CODE BEGIN 1 */
+
 void console_printf(const char *format, ...)
 {
     uint16_t timeout;
@@ -123,9 +125,6 @@ void console_printf(const char *format, ...)
         USART1->TDR = *(buf_ptr++);
     }
 }
-
-/* USER CODE BEGIN 1 */
-
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

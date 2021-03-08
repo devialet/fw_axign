@@ -23,6 +23,8 @@
 #include "stm32f0xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "adc.h"
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,7 +58,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
+extern TIM_HandleTypeDef htim6;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -138,6 +140,62 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f0xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles TIM6 global interrupt.
+  */
+void TIM6_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_IRQn 0 */
+	uint8_t tas53428_error;
+	static uint8_t previous_tas53428_error = 0xFF;
+	static uint8_t timeout_1s;
+
+	HAL_GPIO_TogglePin(GPIOA, DEBUG_0_Pin);
+
+	tas53428_error = (HAL_GPIO_ReadPin(GPIOC, TAS5342_OTW_Pin) & 0x01) |
+					 (HAL_GPIO_ReadPin(GPIOC, TAS5342_SD_Pin) & 0x01 << 1);
+
+	//console_printf("0x%02X\r\n", tas53428_error);
+
+	if (previous_tas53428_error != tas53428_error)
+	{
+		if (tas53428_error == 0x00) {
+			color_console(GREEN_CONSOLE);
+			console_printf("TAS5342 No error");
+		}
+		color_console(RED_CONSOLE);
+		if (tas53428_error == 0x00) {
+			console_printf("TAS5342 Error OTE - OLP - UVP\r\n");
+		}
+		if (tas53428_error == 0x01) {
+			console_printf("TAS5342 Error OLP - UVP\r\n");
+		}
+		if (tas53428_error == 0x02) {
+			console_printf("TAS5342 Error OTE\r\n");
+		}
+		previous_tas53428_error = tas53428_error;
+		color_console(INIT_COLOR_CONSOLE);
+	}
+
+	if (timeout_1s > 0)
+	{
+	    timeout_1s--;
+	} else {
+        ADC_read(TEMP_TAS);
+        ADC_read(TEMP_BRIDGE);
+        ADC_read(PVDD);
+        ADC_read(VAMP);
+        timeout_1s = 10;
+	}
+
+
+  /* USER CODE END TIM6_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_IRQn 1 */
+
+  /* USER CODE END TIM6_IRQn 1 */
+}
 
 /* USER CODE BEGIN 1 */
 
