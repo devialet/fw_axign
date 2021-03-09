@@ -182,6 +182,7 @@ void TIM6_IRQHandler(void)
 	{
 	    timeout_1s--;
 	} else {
+	    HAL_GPIO_TogglePin(GPIOA, DEBUG_1_Pin);
         ADC_read(TEMP_TAS);
         ADC_read(TEMP_BRIDGE);
         ADC_read(PVDD);

@@ -153,6 +153,7 @@ void ADC_read(adc_t adc_index) {
 	uint32_t tmp;
 	uint8_t temp;
 	uint8_t volt;
+	static uint8_t temp_tas_lpf, temp_bridge_lpf, volt_pvdd_lpf, volt_vamp_lpf;
 	static uint8_t previous_value[4] = {0};
 
 	switch (adc_index) {
@@ -192,42 +193,66 @@ void ADC_read(adc_t adc_index) {
     switch (adc_index) {
     case TEMP_TAS :
         temp = (uint8_t)((((float)(tmp) * ADC_V_PER_COUNT) - MCP9700_OFFSET) * MCP9700_T_COEFF + 0.5);
-        if (temp > (previous_value[TEMP_TAS] + 2) || temp < (previous_value[TEMP_TAS] - 2)) {
-            if (temp > 80)
+
+        if (previous_value[TEMP_TAS] | 0x80)
+            temp_tas_lpf = temp;
+        else
+            temp_tas_lpf = temp_tas_lpf - ((temp_tas_lpf - temp) >> 1);
+
+        if (temp_tas_lpf != (previous_value[TEMP_TAS] & 0X7F)) {
+            if (temp_tas_lpf > 80)
             {
                 color_console(RED_CONSOLE);
                 console_printf("WARNING ");
-                color_console(INIT_COLOR_CONSOLE);
             }
-            console_printf("Temp TAS %d*C\r\n", temp);
-            previous_value[TEMP_TAS] = temp;
+            console_printf("Temp TAS %d*C\r\n", temp_tas_lpf);
+            color_console(INIT_COLOR_CONSOLE);
+            previous_value[TEMP_TAS] = (temp_tas_lpf | 0x80);
         }
         break;
     case TEMP_BRIDGE :
         temp = (uint8_t)((((float)(tmp) * ADC_V_PER_COUNT) - MCP9700_OFFSET) * MCP9700_T_COEFF + 0.5);
-        if (temp > (previous_value[TEMP_BRIDGE] + 2) || temp < (previous_value[TEMP_BRIDGE] - 2)) {
-            if (temp > 80)
+
+        if (previous_value[TEMP_BRIDGE] | 0x80)
+            temp_bridge_lpf = temp;
+        else
+            temp_bridge_lpf = temp_bridge_lpf - ((temp_bridge_lpf - temp) >> 1);
+
+        if (temp_bridge_lpf != (previous_value[TEMP_BRIDGE] & 0X7F)) {
+            if (temp_bridge_lpf > 80)
             {
                 color_console(RED_CONSOLE);
                 console_printf("WARNING ");
-                color_console(INIT_COLOR_CONSOLE);
             }
-            console_printf("Temp Bridge %d*C\r\n", temp);
-            previous_value[TEMP_BRIDGE] = temp;
+            console_printf("Temp Bridge %d*C\r\n", temp_bridge_lpf);
+            color_console(INIT_COLOR_CONSOLE);
+            previous_value[TEMP_BRIDGE] = (temp_bridge_lpf | 0x80);
         }
         break;
     case PVDD :
         volt = (uint8_t)((float)(tmp) * VOLT_PER_COUNT + 0.5);
-        if (previous_value[PVDD] != volt) {
-            console_printf("PVDD %dV\r\n", (uint16_t)volt);
-            previous_value[PVDD] = volt;
+
+        if ((previous_value[PVDD] | 0x80) == 0X80)
+            volt_pvdd_lpf = volt;
+        else
+            volt_pvdd_lpf = volt_pvdd_lpf - ((volt_pvdd_lpf - volt) >> 1);
+
+        if (volt_pvdd_lpf != (previous_value[PVDD] & 0x7F)) {
+            console_printf("PVDD %dV\r\n", (uint16_t)volt_pvdd_lpf);
+            previous_value[PVDD] = (volt_pvdd_lpf | 0x80);
         }
         break;
     case VAMP :
         volt = (uint8_t)((float)(tmp) * VOLT_PER_COUNT + 0.5);
-        if (previous_value[VAMP] != volt) {
-            console_printf("VAMP %dV\r\n", (uint16_t)volt);
-            previous_value[VAMP] = volt;
+
+        if ((previous_value[VAMP] | 0x80) == 0X80)
+            volt_vamp_lpf = volt;
+        else
+            volt_vamp_lpf = volt_vamp_lpf - ((volt_vamp_lpf - volt) >> 1);
+
+        if (previous_value[VAMP] != volt_vamp_lpf) {
+            console_printf("VAMP %dV\r\n", (uint16_t)volt_vamp_lpf);
+            previous_value[VAMP] = volt_vamp_lpf;
         }
         break;
     default :

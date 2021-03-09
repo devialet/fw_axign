@@ -57,7 +57,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(AX5689_RST_GPIO_Port, AX5689_RST_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DEBUG_0_Pin|DEBUG_1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DEBUG_0_Pin|DEBUG_1_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PCPin PCPin */
   GPIO_InitStruct.Pin = TAS5342_OTW_Pin|TAS5342_SD_Pin;
